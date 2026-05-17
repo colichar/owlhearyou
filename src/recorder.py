@@ -35,6 +35,7 @@ class AudioRecorder:
             self.audio_queue.get_nowait()
 
         self.stream = sd.InputStream(
+            device='default',
             samplerate=self.sample_rate,
             channels=self.channels,
             callback=self._audio_callback,

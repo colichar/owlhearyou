@@ -10,6 +10,6 @@ NV_PATHS=$(find "$SITE_PACKAGES/nvidia" -name "lib" -type d | tr '\n' ':')
 export LD_LIBRARY_PATH="$NV_PATHS$ORT_PATH:/opt/cuda/lib64:$LD_LIBRARY_PATH"
 
 echo "Prioritizing pip NVIDIA libraries..."
-echo "Launching from: $(pwd)"
+echo "Launching from: $SCRIPT_DIR"
 
-uvicorn src.server:app --reload
+"$VENV_PATH/bin/python" "$SCRIPT_DIR/tests/manual/manual_transcription_test.py"

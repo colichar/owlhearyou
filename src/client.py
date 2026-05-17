@@ -1,6 +1,6 @@
 import asyncio
 import websockets
-from recorder import AudioRecorder
+from src.recorder import AudioRecorder
 
 async def stream_to_server(uri: str):
     recorder = AudioRecorder()
@@ -18,7 +18,6 @@ async def stream_to_server(uri: str):
                     await websocket.send(chunk)
             
             async def receive_transcript():
-
                 async for message in websocket:
                     print(f"Transcript: {message}", flush=True)
 

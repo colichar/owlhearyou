@@ -1,9 +1,9 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from transcriber import NemotronService
+from src.transcriber import NemotronService
 
 app = FastAPI()
 # Initialize the engine once when the server starts
-engine = NemotronService()
+transcriber = NemotronService()
 
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
@@ -16,7 +16,7 @@ async def websocket_transcribe(websocket: WebSocket):
             audio_bytes = await websocket.receive_bytes()
             
             # Send to the independent engine
-            text = await engine.transcribe_stream(audio_bytes)
+            text = await transcriber.transcribe_stream(audio_bytes)
             
             # Send the result back to the client
             if text:

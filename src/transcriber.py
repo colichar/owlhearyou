@@ -4,9 +4,6 @@ import os
 
 class NemotronService:
     def __init__(self, model_dir="../models/nemotron"):
-        # Configure the recognizer for your NVIDIA GPU
-        # Note: 'provider="cuda"' is the key for your GPU usage
-
         encoder = os.path.join(model_dir, "encoder.int8.onnx")
         decoder = os.path.join(model_dir, "decoder.int8.onnx")
         joiner = os.path.join(model_dir, "joiner.int8.onnx")
@@ -18,35 +15,9 @@ class NemotronService:
             decoder=decoder,
             joiner=joiner,
             provider="cuda",
-            device=0,
-            #device_id=0,
-            #model_type="nemotron",
-            #decoding_method="greedy_search"
-            #num_threads=args.threads,
-            #sample_rate=samplerate,
-            #feature_dim=80,
-            #enable_endpoint_detection=True,
-            #rule1_min_trailing_silence=2.4,
-            #rule2_min_trailing_silence=1.2,
-            #rule3_min_utterance_length=20,  # it essentially disables this rule
+            device=0
         )
 
-        #config = sherpa_onnx.OnlineRecognizerConfig(
-        #    model_config=sherpa_onnx.OnlineModelConfig(
-        #        transducer=sherpa_onnx.OnlineTransducerModelConfig(
-        #            encoder=f"{model_dir}/encoder.onnx",
-        #            decoder=f"{model_dir}/decoder.onnx",
-        #            joiner=f"{model_dir}/joiner.onnx",
-        #        ),
-        #        tokens=f"{model_dir}/tokens.txt",
-        #        model_type="nemotron",
-        #        provider="cuda",  # Runs on your CUDA 13.1 driver
-        #        device_id=0,
-        #    ),
-        #    decoding_method="greedy_search"
-        #)
-        
-        #self.recognizer = sherpa_onnx.OnlineRecognizer(config)
         self.stream = self.recognizer.create_stream()
         self.last_text = ""
 
