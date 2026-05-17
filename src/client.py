@@ -19,7 +19,10 @@ async def stream_to_server(uri: str):
             
             async def receive_transcript():
                 async for message in websocket:
-                    print(f"Transcript: {message}", flush=True)
+                    if message.endswith("\n"):
+                        print(f"\r{message.rstrip()}")
+                    else:
+                        print(f"\r{message}", end="", flush=True)
 
             done, pending = await asyncio.wait(
                 [asyncio.create_task(send_audio()),

@@ -16,11 +16,9 @@ async def websocket_transcribe(websocket: WebSocket):
             audio_bytes = await websocket.receive_bytes()
             
             # Send to the independent engine
-            text = await transcriber.transcribe_stream(audio_bytes)
-            
-            # Send the result back to the client
+            text, is_final = await transcriber.transcribe_stream(audio_bytes)
             if text:
-                await websocket.send_text(text)
+                await websocket.send_text(text + ("\n" if is_final else ""))
                 
     except WebSocketDisconnect:
         print("🔌 Client disconnected")

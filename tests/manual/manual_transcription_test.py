@@ -21,9 +21,12 @@ async def main():
 
     try:
         async for chunk in recorder.stream_audio():
-            text = await transcriber.transcribe_stream(chunk)
+            text, is_final = await transcriber.transcribe_stream(chunk)
             if text:
-                print(text, end=" ", flush=True)
+                if is_final:
+                    print(f"\r{text}")
+                else:
+                    print(f"\r{text}", end="", flush=True)
     except KeyboardInterrupt:
         print("\n\nStopping...")
     finally:
