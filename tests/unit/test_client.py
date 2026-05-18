@@ -1,0 +1,77 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+from src.client import stream_to_server
+
+
+class MockWebSocket:
+    def __init__(self, messages=()):
+        self._messages = list(messages)
+
+    def __aiter__(self):
+        return self._gen()
+
+    async def _gen(self):
+        for msg in self._messages:
+            yield msg
+
+    async def send(self, data):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        pass
+
+
+async def _blocking_stream():
+    """Blocks forever so receive_transcript finishes first and asyncio.wait returns."""
+    await asyncio.sleep(float("inf"))
+    yield  # makes this an async generator
+
+
+def make_mock_recorder(stream=None):
+    recorder = MagicMock()
+    recorder.start_recording = AsyncMock()
+    recorder.stop_recording = AsyncMock()
+    recorder.stream_audio.return_value = stream if stream is not None else _blocking_stream()
+    return recorder
+
+
+# --- receive_transcript rendering ---
+
+async def test_final_message_is_printed_with_rstrip():
+    ws = MockWebSocket(["hello\n"])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder), \
+         patch("builtins.print") as mock_print:
+        await stream_to_server("ws://localhost")
+
+    mock_print.assert_any_call("\rhello")
+
+
+async def test_partial_message_is_printed_inline():
+    ws = MockWebSocket(["hello"])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder), \
+         patch("builtins.print") as mock_print:
+        await stream_to_server("ws://localhost")
+
+    mock_print.assert_any_call("\rhello", end="", flush=True)
+
+
+# --- finally block ---
+
+async def test_stop_recording_always_called():
+    ws = MockWebSocket([])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder):
+        await stream_to_server("ws://localhost")
+
+    recorder.stop_recording.assert_called_once()

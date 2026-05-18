@@ -15,13 +15,14 @@ async def main():
     print("Loading Nemotron model...")
     transcriber = NemotronService(model_dir=MODEL_DIR)
     recorder = AudioRecorder(sample_rate=16000, channels=1)
+    session = transcriber.create_session()
 
     await recorder.start_recording()
     print("Listening... (Ctrl+C to stop)\n")
 
     try:
         async for chunk in recorder.stream_audio():
-            text, is_final = await transcriber.transcribe_stream(chunk)
+            text, is_final = await session.transcribe(chunk)
             if text:
                 if is_final:
                     print(f"\r{text}")
@@ -31,6 +32,7 @@ async def main():
         print("\n\nStopping...")
     finally:
         await recorder.stop_recording()
+        await session.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
