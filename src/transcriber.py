@@ -2,15 +2,41 @@ import asyncio
 import sherpa_onnx
 import numpy as np
 import os
+from src.base_transcriber import BaseTranscriber, TranscriptionSession
 
-class NemotronService:
+
+class NemotronSession(TranscriptionSession):
+    def __init__(self, recognizer: sherpa_onnx.OnlineRecognizer):
+        self._recognizer = recognizer
+        self._stream = recognizer.create_stream()
+
+    def _decode_chunk(self, samples: np.ndarray) -> tuple[str, bool]:
+        self._stream.accept_waveform(16000, samples)
+        while self._recognizer.is_ready(self._stream):
+            self._recognizer.decode_stream(self._stream)
+        text = self._recognizer.get_result(self._stream)
+        is_final = self._recognizer.is_endpoint(self._stream)
+        if is_final:
+            self._recognizer.reset(self._stream)
+        return text.strip(), is_final
+
+    async def transcribe(self, audio_bytes: bytes) -> tuple[str, bool]:
+        samples = np.frombuffer(audio_bytes, dtype=np.float32)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._decode_chunk, samples)
+
+    async def close(self) -> None:
+        pass
+
+
+class NemotronService(BaseTranscriber):
     def __init__(self, model_dir="../models/nemotron"):
         encoder = os.path.join(model_dir, "encoder.int8.onnx")
         decoder = os.path.join(model_dir, "decoder.int8.onnx")
         joiner = os.path.join(model_dir, "joiner.int8.onnx")
         tokens = os.path.join(model_dir, "tokens.txt")
 
-        self.recognizer = sherpa_onnx.OnlineRecognizer.from_transducer(
+        self._recognizer = sherpa_onnx.OnlineRecognizer.from_transducer(
             tokens=tokens,
             encoder=encoder,
             decoder=decoder,
@@ -23,19 +49,5 @@ class NemotronService:
             rule3_min_utterance_length=20,
         )
 
-        self.stream = self.recognizer.create_stream()
-
-    def _decode_chunk(self, samples: np.ndarray) -> tuple[str, bool]:
-        self.stream.accept_waveform(16000, samples)
-        while self.recognizer.is_ready(self.stream):
-            self.recognizer.decode_stream(self.stream)
-        text = self.recognizer.get_result(self.stream)
-        is_final = self.recognizer.is_endpoint(self.stream)
-        if is_final:
-            self.recognizer.reset(self.stream)
-        return text.strip(), is_final
-
-    async def transcribe_stream(self, audio_bytes: bytes) -> tuple[str, bool]:
-        samples = np.frombuffer(audio_bytes, dtype=np.float32)
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._decode_chunk, samples)
+    def create_session(self) -> NemotronSession:
+        return NemotronSession(self._recognizer)
