@@ -1,6 +1,7 @@
+import asyncio
 import numpy as np
 from unittest.mock import MagicMock
-from src.transcriber import NemotronService, NemotronSession
+from src.transcriber import NemotronService, NemotronSession, WhisperService, WhisperSession
 
 
 def make_session(get_result="hello", is_endpoint=False, is_ready=False):
@@ -12,6 +13,109 @@ def make_session(get_result="hello", is_endpoint=False, is_ready=False):
 
 
 SAMPLES = np.zeros(100, dtype=np.float32)
+
+
+SILENT = np.zeros(512, dtype=np.float32)
+LOUD = np.ones(512, dtype=np.float32) * 0.5
+
+
+def make_whisper_session():
+    model = MagicMock()
+    return WhisperSession(model, asyncio.Semaphore(1))
+
+
+def make_segments(*texts):
+    segments = []
+    for t in texts:
+        seg = MagicMock()
+        seg.text = t
+        segments.append(seg)
+    return segments
+
+
+# --- WhisperSession._should_flush ---
+
+def test_whisper_should_flush_false_before_silence_threshold():
+    session = make_whisper_session()
+    for _ in range(WhisperSession._SILENCE_CHUNKS - 1):
+        assert session._should_flush(SILENT) is False
+
+
+def test_whisper_should_flush_true_after_silence_threshold():
+    session = make_whisper_session()
+    for _ in range(WhisperSession._SILENCE_CHUNKS - 1):
+        session._should_flush(SILENT)
+    assert session._should_flush(SILENT) is True
+
+
+def test_whisper_should_flush_resets_on_loud_chunk():
+    session = make_whisper_session()
+    for _ in range(WhisperSession._SILENCE_CHUNKS - 1):
+        session._should_flush(SILENT)
+    session._should_flush(LOUD)
+    assert session._should_flush(SILENT) is False
+
+
+def test_whisper_should_flush_true_at_max_seconds():
+    session = make_whisper_session()
+    session._buffer = [np.zeros(int(WhisperSession._MAX_SECONDS * 16000), dtype=np.float32)]
+    assert session._should_flush(LOUD) is True
+
+
+# --- WhisperSession._flush ---
+
+def test_whisper_flush_returns_joined_segments():
+    session = make_whisper_session()
+    session._buffer = [SILENT]
+    session._model.transcribe.return_value = (make_segments("hello", "world"), None)
+    text, is_final = session._flush()
+    assert text == "hello world"
+    assert is_final is True
+
+
+def test_whisper_flush_clears_buffer():
+    session = make_whisper_session()
+    session._buffer = [SILENT, LOUD]
+    session._model.transcribe.return_value = ([], None)
+    session._flush()
+    assert session._buffer == []
+
+
+# --- WhisperSession.transcribe ---
+
+async def test_whisper_transcribe_returns_empty_when_not_flushing():
+    session = make_whisper_session()
+    text, is_final = await session.transcribe(LOUD.tobytes())
+    assert text == ""
+    assert is_final is False
+
+
+async def test_whisper_transcribe_returns_result_on_flush():
+    session = make_whisper_session()
+    session._buffer = [np.zeros(int(WhisperSession._MAX_SECONDS * 16000), dtype=np.float32)]
+    session._model.transcribe.return_value = (make_segments("hello"), None)
+    text, is_final = await session.transcribe(LOUD.tobytes())
+    assert text == "hello"
+    assert is_final is True
+
+
+async def test_whisper_close_clears_buffer():
+    session = make_whisper_session()
+    session._buffer = [SILENT, LOUD]
+    await session.close()
+    assert session._buffer == []
+
+
+# --- WhisperService.create_session ---
+
+def test_whisper_create_session_returns_correct_session():
+    service = WhisperService.__new__(WhisperService)
+    service._model = MagicMock()
+    service._semaphore = asyncio.Semaphore(1)
+    session = service.create_session()
+    assert isinstance(session, WhisperSession)
+    assert session._model is service._model
+    assert session._semaphore is service._semaphore
 
 
 # --- NemotronSession._decode_chunk ---
