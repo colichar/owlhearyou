@@ -1,9 +1,14 @@
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from src.transcriber import NemotronService
+from src.transcriber import NemotronService, WhisperService
 
 app = FastAPI()
-# Initialize the engine once when the server starts
-transcriber = NemotronService()
+
+_backend = os.environ.get("STT_BACKEND", "nemotron")
+if _backend == "whisper":
+    transcriber = WhisperService(model_size=os.environ.get("WHISPER_MODEL", "base"))
+else:
+    transcriber = NemotronService()
 
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
