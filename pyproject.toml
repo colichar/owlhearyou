@@ -6,18 +6,13 @@ build-backend = "setuptools.build_meta"
 name = "owlhearyou"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = [
-    "fastapi",
-    "uvicorn",
-    "websockets",
-    "sounddevice",
-    "numpy",
-    "huggingface-hub",
-]
+dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio"]
+client  = ["websockets", "sounddevice", "numpy"]
+server  = ["fastapi", "uvicorn", "numpy", "huggingface-hub"]
 whisper = ["faster-whisper"]
+dev     = ["pytest", "pytest-asyncio"]
 
 [tool.setuptools.packages.find]
 where = ["."]

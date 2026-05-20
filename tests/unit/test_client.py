@@ -1,6 +1,6 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.client import stream_to_server
+from src.client import OwlClient, stream_to_server
 
 
 class MockWebSocket:
@@ -25,9 +25,9 @@ class MockWebSocket:
 
 
 async def _blocking_stream():
-    """Blocks forever so receive_transcript finishes first and asyncio.wait returns."""
+    """Blocks forever so the receive side finishes first."""
     await asyncio.sleep(float("inf"))
-    yield  # makes this an async generator
+    yield
 
 
 def make_mock_recorder(stream=None):
@@ -38,7 +38,47 @@ def make_mock_recorder(stream=None):
     return recorder
 
 
-# --- receive_transcript rendering ---
+# --- OwlClient.stream() ---
+
+async def test_stream_yields_partial_tuple():
+    ws = MockWebSocket(["hello"])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder):
+        results = []
+        async for text, is_final in OwlClient("ws://localhost").stream():
+            results.append((text, is_final))
+
+    assert results == [("hello", False)]
+
+
+async def test_stream_yields_final_tuple():
+    ws = MockWebSocket(["hello\n"])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder):
+        results = []
+        async for text, is_final in OwlClient("ws://localhost").stream():
+            results.append((text, is_final))
+
+    assert results == [("hello", True)]
+
+
+async def test_stream_stop_recording_called_in_finally():
+    ws = MockWebSocket([])
+    recorder = make_mock_recorder()
+
+    with patch("src.client.websockets.connect", return_value=ws), \
+         patch("src.client.AudioRecorder", return_value=recorder):
+        async for _ in OwlClient("ws://localhost").stream():
+            pass
+
+    recorder.stop_recording.assert_called_once()
+
+
+# --- stream_to_server() print rendering ---
 
 async def test_final_message_is_printed_with_rstrip():
     ws = MockWebSocket(["hello\n"])
@@ -63,8 +103,6 @@ async def test_partial_message_is_printed_inline():
 
     mock_print.assert_any_call("\rhello", end="", flush=True)
 
-
-# --- finally block ---
 
 async def test_stop_recording_always_called():
     ws = MockWebSocket([])

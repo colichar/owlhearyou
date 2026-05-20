@@ -1,45 +1,45 @@
 import asyncio
 import websockets
+from typing import AsyncIterator
 from src.recorder import AudioRecorder
 
-async def stream_to_server(uri: str):
-    recorder = AudioRecorder()
-    
-    try:
-        # 1. Connect to the FastAPI server
-        async with websockets.connect(uri) as websocket:
-            print(f"Connected to {uri}")
+
+async def _send_audio(ws, recorder: AudioRecorder) -> None:
+    async for chunk in recorder.stream_audio():
+        await ws.send(chunk)
+
+
+class OwlClient:
+    def __init__(self, uri: str):
+        self._uri = uri
+
+    async def stream(self) -> AsyncIterator[tuple[str, bool]]:
+        recorder = AudioRecorder()
+        async with websockets.connect(self._uri) as ws:
             await recorder.start_recording()
-            
-            # 2. Start two concurrent tasks: one for sending, one for receiving
-            # This allows us to see transcripts while we are still talking
-            async def send_audio():
-                async for chunk in recorder.stream_audio():
-                    await websocket.send(chunk)
-            
-            async def receive_transcript():
-                async for message in websocket:
-                    if message.endswith("\n"):
-                        print(f"\r{message.rstrip()}")
-                    else:
-                        print(f"\r{message}", end="", flush=True)
-
-            done, pending = await asyncio.wait(
-                [asyncio.create_task(send_audio()),
-                 asyncio.create_task(receive_transcript())],
-                 return_when=asyncio.FIRST_COMPLETED,
-            )
-
-            for task in pending:
-                task.cancel()
+            send_task = asyncio.create_task(_send_audio(ws, recorder))
+            try:
+                async for message in ws:
+                    is_final = message.endswith("\n")
+                    yield message.rstrip(), is_final
+            finally:
+                send_task.cancel()
+                await recorder.stop_recording()
 
 
+async def stream_to_server(uri: str) -> None:
+    client = OwlClient(uri)
+    try:
+        async for text, is_final in client.stream():
+            if is_final:
+                print(f"\r{text}")
+            else:
+                print(f"\r{text}", end="", flush=True)
     except KeyboardInterrupt:
         print("\nStopping stream...")
     except Exception as e:
         print(f"Connection error: {e}")
-    finally:
-        await recorder.stop_recording()
+
 
 if __name__ == "__main__":
     SERVER_URI = "ws://localhost:8000/ws/transcribe"
