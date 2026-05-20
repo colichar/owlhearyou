@@ -12,6 +12,7 @@ dependencies = [
     "websockets",
     "sounddevice",
     "numpy",
+    "huggingface-hub",
 ]
 
 [project.optional-dependencies]
