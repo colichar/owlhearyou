@@ -112,6 +112,7 @@ def test_whisper_create_session_returns_correct_session():
     service = WhisperService.__new__(WhisperService)
     service._model = MagicMock()
     service._semaphore = asyncio.Semaphore(1)
+    service._language = None
     session = service.create_session()
     assert isinstance(session, WhisperSession)
     assert session._model is service._model
