@@ -9,20 +9,19 @@ import os
 from src.recorder import AudioRecorder
 from src.transcriber import NemotronService, WhisperService
 
-MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "models", "nemotron")
-
 
 async def main():
     backend = os.environ.get("STT_BACKEND", "nemotron")
 
     if backend == "whisper":
         model_size = os.environ.get("WHISPER_MODEL", "base")
+        language = os.environ.get("WHISPER_LANGUAGE") or None
         print(f"Loading Whisper model ({model_size})...")
-        transcriber = WhisperService(model_size=model_size)
+        transcriber = WhisperService(model_size=model_size, language=language)
         print("Listening... results appear after each pause (Ctrl+C to stop)\n")
     else:
         print("Loading Nemotron model...")
-        transcriber = NemotronService(model_dir=MODEL_DIR)
+        transcriber = NemotronService()
         print("Listening... (Ctrl+C to stop)\n")
 
     recorder = AudioRecorder(sample_rate=16000, channels=1)

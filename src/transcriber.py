@@ -4,16 +4,21 @@ import numpy as np
 import os
 from src.base_transcriber import BaseTranscriber, TranscriptionSession
 
+_MODELS_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "models"))
+_NEMOTRON_MODEL_DIR = os.path.join(_MODELS_DIR, "nemotron")
+_WHISPER_MODEL_DIR = os.path.join(_MODELS_DIR, "whisper")
+
 
 class WhisperSession(TranscriptionSession):
     _SILENCE_RMS = 0.01
     _SILENCE_CHUNKS = 40   # ~1.3s at 32ms/chunk
     _MAX_SECONDS = 30
 
-    def __init__(self, model, semaphore: asyncio.Semaphore, sample_rate: int = 16000):
+    def __init__(self, model, semaphore: asyncio.Semaphore, sample_rate: int = 16000, language: str | None = None):
         self._model = model
         self._semaphore = semaphore
         self._sample_rate = sample_rate
+        self._language = language
         self._buffer: list[np.ndarray] = []
         self._silent_chunks = 0
 
@@ -27,7 +32,7 @@ class WhisperSession(TranscriptionSession):
         audio = np.concatenate(self._buffer)
         self._buffer.clear()
         self._silent_chunks = 0
-        segments, _ = self._model.transcribe(audio, vad_filter=True)
+        segments, _ = self._model.transcribe(audio, vad_filter=True, language=self._language, task="transcribe")
         return " ".join(s.text for s in segments).strip(), True
 
     async def transcribe(self, audio_bytes: bytes) -> tuple[str, bool]:
@@ -44,13 +49,14 @@ class WhisperSession(TranscriptionSession):
 
 
 class WhisperService(BaseTranscriber):
-    def __init__(self, model_size: str = "base", device: str = "cuda"):
+    def __init__(self, model_size: str = "base", device: str = "cuda", language: str | None = None):
         from faster_whisper import WhisperModel
-        self._model = WhisperModel(model_size, device=device)
+        self._model = WhisperModel(model_size, device=device, download_root=_WHISPER_MODEL_DIR)
         self._semaphore = asyncio.Semaphore(1)
+        self._language = language
 
     def create_session(self) -> WhisperSession:
-        return WhisperSession(self._model, self._semaphore)
+        return WhisperSession(self._model, self._semaphore, language=self._language)
 
 
 class NemotronSession(TranscriptionSession):
@@ -77,8 +83,18 @@ class NemotronSession(TranscriptionSession):
         pass
 
 
+# Pinned to the specific int8 quantized variant this project was built and tested against.
+# Changing the model requires re-validating the recognizer config below.
+_NEMOTRON_REPO = "csukuangfj/sherpa-onnx-nemotron-speech-streaming-en-0.6b-int8-2026-01-14"
+
+
 class NemotronService(BaseTranscriber):
-    def __init__(self, model_dir="../models/nemotron"):
+    def __init__(self, model_dir=_NEMOTRON_MODEL_DIR):
+        if not os.path.exists(os.path.join(model_dir, "encoder.int8.onnx")):
+            from huggingface_hub import snapshot_download
+            print(f"Downloading Nemotron model to {model_dir}...")
+            snapshot_download(repo_id=_NEMOTRON_REPO, local_dir=model_dir)
+
         encoder = os.path.join(model_dir, "encoder.int8.onnx")
         decoder = os.path.join(model_dir, "decoder.int8.onnx")
         joiner = os.path.join(model_dir, "joiner.int8.onnx")

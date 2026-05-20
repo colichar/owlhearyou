@@ -6,7 +6,10 @@ app = FastAPI()
 
 _backend = os.environ.get("STT_BACKEND", "nemotron")
 if _backend == "whisper":
-    transcriber = WhisperService(model_size=os.environ.get("WHISPER_MODEL", "base"))
+    transcriber = WhisperService(
+        model_size=os.environ.get("WHISPER_MODEL", "base"),
+        language=os.environ.get("WHISPER_LANGUAGE") or None,
+    )
 else:
     transcriber = NemotronService()
 
