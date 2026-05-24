@@ -24,7 +24,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -e ".[server,whisper,dev]"
+        run: pip install -e ".[client,server,whisper,dev]"
 
       - name: Cache Whisper model
         uses: actions/cache@v4
