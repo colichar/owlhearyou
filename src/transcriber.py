@@ -49,7 +49,7 @@ class WhisperSession(TranscriptionSession):
 
 
 class WhisperService(BaseTranscriber):
-    def __init__(self, model_size: str = "base", device: str = "cuda", language: str | None = None):
+    def __init__(self, model_size: str = "base", device: str = "auto", language: str | None = None):
         from faster_whisper import WhisperModel
         self._model = WhisperModel(model_size, device=device, download_root=_WHISPER_MODEL_DIR)
         self._semaphore = asyncio.Semaphore(1)
@@ -89,7 +89,7 @@ _NEMOTRON_REPO = "csukuangfj/sherpa-onnx-nemotron-speech-streaming-en-0.6b-int8-
 
 
 class NemotronService(BaseTranscriber):
-    def __init__(self, model_dir=_NEMOTRON_MODEL_DIR):
+    def __init__(self, model_dir=_NEMOTRON_MODEL_DIR, provider: str = "cuda"):
         if not os.path.exists(os.path.join(model_dir, "encoder.int8.onnx")):
             from huggingface_hub import snapshot_download
             print(f"Downloading Nemotron model to {model_dir}...")
@@ -105,8 +105,7 @@ class NemotronService(BaseTranscriber):
             encoder=encoder,
             decoder=decoder,
             joiner=joiner,
-            provider="cuda",
-            device=0,
+            provider=provider,
             enable_endpoint_detection=True,
             rule1_min_trailing_silence=2.4,
             rule2_min_trailing_silence=1.2,

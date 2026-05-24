@@ -9,11 +9,17 @@ See [INSTALL.md](INSTALL.md) for full setup instructions.
 ## Running
 
 ```bash
-# Nemotron (default)
+# Nemotron (default, GPU)
 ./run.sh
 
-# Whisper
+# Nemotron on CPU
+STT_DEVICE=cpu ./run.sh
+
+# Whisper on GPU
 STT_BACKEND=whisper ./run.sh
+
+# Whisper on CPU
+STT_BACKEND=whisper STT_DEVICE=cpu ./run.sh
 
 # Whisper with a specific model and language
 STT_BACKEND=whisper WHISPER_MODEL=large-v3 WHISPER_LANGUAGE=de ./run.sh
@@ -24,8 +30,11 @@ STT_BACKEND=whisper WHISPER_MODEL=large-v3 WHISPER_LANGUAGE=de ./run.sh
 | Variable | Values | Default |
 |---|---|---|
 | `STT_BACKEND` | `nemotron`, `whisper` | `nemotron` |
+| `STT_DEVICE` | `cuda`, `cpu`, `auto` | `cuda` |
 | `WHISPER_MODEL` | any faster-whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`, …) | `base` |
 | `WHISPER_LANGUAGE` | BCP-47 language code (`en`, `de`, `fr`, …) or unset for auto-detect | unset |
+
+`STT_DEVICE=auto` lets faster-whisper pick the best available device automatically; for Nemotron it behaves the same as `cuda`.
 
 ## Backends
 
