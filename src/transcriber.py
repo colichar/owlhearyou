@@ -1,5 +1,4 @@
 import asyncio
-import sherpa_onnx
 import numpy as np
 import os
 from src.base_transcriber import BaseTranscriber, TranscriptionSession
@@ -60,7 +59,7 @@ class WhisperService(BaseTranscriber):
 
 
 class NemotronSession(TranscriptionSession):
-    def __init__(self, recognizer: sherpa_onnx.OnlineRecognizer):
+    def __init__(self, recognizer):
         self._recognizer = recognizer
         self._stream = recognizer.create_stream()
 
@@ -90,6 +89,7 @@ _NEMOTRON_REPO = "csukuangfj/sherpa-onnx-nemotron-speech-streaming-en-0.6b-int8-
 
 class NemotronService(BaseTranscriber):
     def __init__(self, model_dir=_NEMOTRON_MODEL_DIR, provider: str = "cuda"):
+        import sherpa_onnx
         if not os.path.exists(os.path.join(model_dir, "encoder.int8.onnx")):
             from huggingface_hub import snapshot_download
             print(f"Downloading Nemotron model to {model_dir}...")

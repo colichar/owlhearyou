@@ -1,0 +1,36 @@
+name: E2E Tests (Whisper)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    env:
+      STT_BACKEND: whisper
+      STT_DEVICE: cpu
+      WHISPER_MODEL: base
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[server,whisper,dev]"
+
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: models/whisper
+          key: whisper-${{ env.WHISPER_MODEL }}
+
+      - name: Run E2E tests
+        run: pytest tests/e2e/ -v
