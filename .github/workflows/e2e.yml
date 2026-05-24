@@ -1,4 +1,4 @@
-name: E2E Tests (Whisper)
+name: E2E Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  e2e:
+  e2e-whisper:
     runs-on: ubuntu-latest
 
     env:
@@ -31,6 +31,33 @@ jobs:
         with:
           path: models/whisper
           key: whisper-${{ env.WHISPER_MODEL }}
+
+      - name: Run E2E tests
+        run: pytest tests/e2e/ -v
+
+  e2e-nemotron:
+    runs-on: ubuntu-latest
+
+    env:
+      STT_BACKEND: nemotron
+      STT_DEVICE: cpu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[client,server,nemotron,dev]"
+
+      - name: Cache Nemotron model
+        uses: actions/cache@v4
+        with:
+          path: models/nemotron
+          key: nemotron-${{ hashFiles('src/transcriber.py') }}
 
       - name: Run E2E tests
         run: pytest tests/e2e/ -v
