@@ -79,19 +79,16 @@ def _wav_to_chunks(path: str, chunk_ms: int = 32, target_sr: int = 16000) -> lis
 
 
 @pytest.fixture(scope="session")
-def hello_en_chunks():
-    path = os.path.join(_HERE, "fixtures", "hello_en.wav")
-    if not os.path.exists(path):
-        pytest.skip(f"Fixture not found: {path} — record a short English phrase and save it there")
-    return _wav_to_chunks(path)
-
-
-@pytest.fixture(scope="session")
-def hello_en_transcript():
-    path = os.path.join(_HERE, "fixtures", "hello_en.txt")
-    if not os.path.exists(path):
-        pytest.skip(f"Transcript fixture not found: {path}")
-    return open(path).read().strip().lower()
+def test_cases() -> list[tuple[list[bytes], str]]:
+    """Returns [(chunks, transcript), ...] for each fixture pair found in fixtures/."""
+    cases = []
+    for name in ("test_case_1", "test_case_2"):
+        wav = os.path.join(_HERE, "fixtures", f"{name}.wav")
+        txt = os.path.join(_HERE, "fixtures", f"{name}.txt")
+        if not os.path.exists(wav) or not os.path.exists(txt):
+            pytest.skip(f"Fixture not found: {name}.wav / {name}.txt")
+        cases.append((_wav_to_chunks(wav), open(txt).read().strip().lower()))
+    return cases
 
 
 _SILENCE_CHUNK = np.zeros(512, dtype=np.float32).tobytes()
