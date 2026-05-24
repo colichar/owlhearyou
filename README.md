@@ -14,19 +14,19 @@ See [INSTALL.md](INSTALL.md) for full setup instructions.
 
 ```bash
 # Nemotron (default, GPU)
-./run.sh
+./scripts/run.sh
 
 # Nemotron on CPU
-STT_DEVICE=cpu ./run.sh
+STT_DEVICE=cpu ./scripts/run.sh
 
 # Whisper on GPU
-STT_BACKEND=whisper ./run.sh
+STT_BACKEND=whisper ./scripts/run.sh
 
 # Whisper on CPU
-STT_BACKEND=whisper STT_DEVICE=cpu ./run.sh
+STT_BACKEND=whisper STT_DEVICE=cpu ./scripts/run.sh
 
 # Whisper with a specific model and language
-STT_BACKEND=whisper WHISPER_MODEL=large-v3 WHISPER_LANGUAGE=de ./run.sh
+STT_BACKEND=whisper WHISPER_MODEL=large-v3 WHISPER_LANGUAGE=de ./scripts/run.sh
 ```
 
 ## Environment variables

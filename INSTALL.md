@@ -65,10 +65,10 @@ pip install -e ".[dev]"
 pip install -e ".[dev,whisper]"
 ```
 
-## 7. Launch with run.sh
+## 7. Launch with scripts/run.sh
 
-Always launch via `./run.sh`, never `uvicorn` directly. `run.sh` sets `LD_LIBRARY_PATH` to ensure the venv's CUDA libraries are loaded before any system CUDA libraries:
+Always launch via `./scripts/run.sh`, never `uvicorn` directly. `run.sh` sets `LD_LIBRARY_PATH` to ensure the venv's CUDA libraries are loaded before any system CUDA libraries:
 
 ```bash
-./run.sh
+./scripts/run.sh
 ```
