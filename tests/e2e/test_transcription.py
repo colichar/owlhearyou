@@ -1,5 +1,8 @@
 import asyncio
 
+import numpy as np
+import websockets
+
 
 _EXPECTED_KEYWORDS = {
     "test_case_1": ("nightfall", "yellow", "lamps"),
@@ -34,3 +37,20 @@ async def test_concurrent_sessions(transcribe, test_cases):
 
     _assert_transcript(results_a, keywords_1)
     _assert_transcript(results_b, keywords_2)
+
+
+async def test_silence_produces_no_output(server_uri):
+    messages = []
+    silence = np.zeros(512, dtype=np.float32).tobytes()
+
+    async with websockets.connect(server_uri) as ws:
+        async def _collect():
+            async for msg in ws:
+                messages.append(msg)
+
+        collect_task = asyncio.create_task(_collect())
+        for _ in range(20):
+            await ws.send(silence)
+        collect_task.cancel()
+
+    assert not messages, f"Expected no output for silence, got: {messages}"
