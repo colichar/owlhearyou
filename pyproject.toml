@@ -9,11 +9,11 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
-client  = ["websockets", "sounddevice", "numpy"]
-server  = ["fastapi", "uvicorn", "numpy", "huggingface-hub"]
-whisper  = ["faster-whisper"]
-nemotron = ["sherpa-onnx"]
-dev     = ["pytest", "pytest-asyncio"]
+client  = ["websockets>=16.0", "sounddevice>=0.5.5", "numpy>=2.4.2"]
+server  = ["fastapi>=0.129.0", "uvicorn>=0.40.0", "numpy>=2.4.2", "huggingface-hub>=1.15.0"]
+whisper  = ["faster-whisper>=1.2.1"]
+nemotron = ["sherpa-onnx>=1.12.24"]
+dev     = ["pytest>=9.0.3", "pytest-asyncio>=1.3.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]

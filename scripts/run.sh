@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-VENV_PATH="$SCRIPT_DIR/.venv"
+VENV_PATH="$SCRIPT_DIR/../.venv"
 SITE_PACKAGES="$VENV_PATH/lib/python3.12/site-packages"
 
 ORT_PATH="$SITE_PACKAGES/onnxruntime/capi"
@@ -10,6 +10,6 @@ NV_PATHS=$(find "$SITE_PACKAGES/nvidia" -name "lib" -type d | tr '\n' ':')
 export LD_LIBRARY_PATH="$NV_PATHS$ORT_PATH:/opt/cuda/lib64:$LD_LIBRARY_PATH"
 
 echo "Prioritizing pip NVIDIA libraries..."
-echo "Launching from: $SCRIPT_DIR"
+echo "Launching from: $(pwd)"
 
-"$VENV_PATH/bin/python" "$SCRIPT_DIR/tests/manual/manual_transcription_test.py"
+uvicorn src.server:app --reload
