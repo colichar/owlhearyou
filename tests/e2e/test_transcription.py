@@ -1,6 +1,8 @@
 import asyncio
+import os
 
 import numpy as np
+import pytest
 import websockets
 
 
@@ -37,6 +39,17 @@ async def test_concurrent_sessions(transcribe, test_cases):
 
     _assert_transcript(results_a, keywords_1)
     _assert_transcript(results_b, keywords_2)
+
+
+@pytest.mark.skipif(
+    os.environ.get("STT_BACKEND", "whisper") != "nemotron",
+    reason="partial results only apply to the Nemotron streaming backend",
+)
+async def test_streaming_partials(transcribe, test_cases):
+    (chunks, _) = test_cases[0]
+    results = await transcribe(chunks)
+    partials = [t for t, is_final in results if not is_final]
+    assert partials, "Expected partial results before the final from Nemotron"
 
 
 async def test_silence_produces_no_output(server_uri):
