@@ -12,16 +12,18 @@ from src.transcriber import NemotronService, WhisperService
 
 async def main():
     backend = os.environ.get("STT_BACKEND", "nemotron")
+    device = os.environ.get("STT_DEVICE", "cuda")
+    onnx_provider = "cpu" if device == "cpu" else "cuda"
 
     if backend == "whisper":
         model_size = os.environ.get("WHISPER_MODEL", "base")
         language = os.environ.get("WHISPER_LANGUAGE") or None
-        print(f"Loading Whisper model ({model_size})...")
-        transcriber = WhisperService(model_size=model_size, language=language)
+        print(f"Loading Whisper model ({model_size}, device={device})...")
+        transcriber = WhisperService(model_size=model_size, language=language, device=device)
         print("Listening... results appear after each pause (Ctrl+C to stop)\n")
     else:
-        print("Loading Nemotron model...")
-        transcriber = NemotronService()
+        print(f"Loading Nemotron model (provider={onnx_provider})...")
+        transcriber = NemotronService(provider=onnx_provider)
         print("Listening... (Ctrl+C to stop)\n")
 
     recorder = AudioRecorder(sample_rate=16000, channels=1)
