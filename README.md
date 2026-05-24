@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="OwlHearYou logo" width="200"/>
+</p>
+
 # OwlHearYou
 
 Real-time speech-to-text service over WebSockets. Supports two transcription backends selectable via environment variable.

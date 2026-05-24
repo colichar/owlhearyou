@@ -1,6 +1,6 @@
 __pycache__/
 .venv/
-assets/
+tmp/
 models/
 .env
 *.egg-info
