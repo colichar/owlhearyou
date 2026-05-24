@@ -86,6 +86,14 @@ def hello_en_chunks():
     return _wav_to_chunks(path)
 
 
+@pytest.fixture(scope="session")
+def hello_en_transcript():
+    path = os.path.join(_HERE, "fixtures", "hello_en.txt")
+    if not os.path.exists(path):
+        pytest.skip(f"Transcript fixture not found: {path}")
+    return open(path).read().strip().lower()
+
+
 _SILENCE_CHUNK = np.zeros(512, dtype=np.float32).tobytes()
 
 
