@@ -1,0 +1,11 @@
+.git/
+.venv/
+models/
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+owlhearyou.egg-info/
+assets/
+tests/
+.env

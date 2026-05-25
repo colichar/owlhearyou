@@ -17,6 +17,10 @@ if _backend == "whisper":
 else:
     transcriber = NemotronService(provider=_onnx_provider)
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
     await websocket.accept()

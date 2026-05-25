@@ -1,0 +1,19 @@
+services:
+  server:
+    build:
+      context: .
+      target: nemotron
+    image: owlhearyou:nemotron-1.0.0
+    environment:
+      STT_BACKEND: nemotron
+      STT_DEVICE: cpu
+    volumes:
+      - ./models:/app/models:z
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
