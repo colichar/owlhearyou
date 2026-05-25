@@ -15,10 +15,13 @@ See [INSTALL.md](INSTALL.md) for full setup instructions.
 ### Server (podman-compose)
 
 ```bash
+# Copy the example and adjust image tag / target as needed
+cp podman-compose.example.yml podman-compose.yml
+
 # Build the image
 podman-compose build
 
-# Start the server (CPU, Nemotron backend)
+# Start the server
 podman-compose up
 ```
 

@@ -1,0 +1,21 @@
+services:
+  server:
+    build:
+      context: .
+      target: nemotron        # or: whisper, owl
+    image: owlhearyou:nemotron-1.0.0 # or: whisper, owl
+    # environment:
+    #   STT_BACKEND: nemotron   # overrides the image default
+    #   STT_DEVICE: cpu         # overrides the image default
+    #   WHISPER_MODEL: large-v3 # whisper only
+    #   WHISPER_LANGUAGE: en    # whisper only — omit for auto-detect
+    volumes:
+      - ./models:/app/models:z
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s

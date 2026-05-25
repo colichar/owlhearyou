@@ -24,10 +24,18 @@ EXPOSE 8000
 CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ── whisper (CPU) ─────────────────────────────────────────────────────────────
-# FROM base AS whisper
-# RUN pip install --no-cache-dir -e ".[server,whisper]"
-# ENV STT_BACKEND=whisper STT_DEVICE=cpu
-# CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8000"]
+FROM base AS whisper
+
+RUN pip install --no-cache-dir -e ".[server,whisper]"
+
+ENV STT_BACKEND=whisper \
+    STT_DEVICE=cpu \
+    WHISPER_MODEL=base \
+    WHISPER_LANGUAGE=
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ── owl (nemotron + whisper, CPU) ─────────────────────────────────────────────
 # FROM base AS owl
