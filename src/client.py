@@ -37,10 +37,32 @@ async def stream_to_server(uri: str) -> None:
                 print(f"\r{text}", end="", flush=True)
     except KeyboardInterrupt:
         print("\nStopping stream...")
+    except RuntimeError as e:
+        # RuntimeError is raised by AudioRecorder when PortAudio fails to open
+        # the input device — the message already contains the device list hint.
+        print(f"\nAudio error: {e}")
     except Exception as e:
+        # Catch-all for WebSocket and network failures.
         print(f"Connection error: {e}")
 
 
 if __name__ == "__main__":
-    SERVER_URI = "ws://localhost:8000/ws/transcribe"
-    asyncio.run(stream_to_server(SERVER_URI))
+    import argparse
+    import sounddevice as sd
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--uri", default="ws://localhost:8000/ws/transcribe")
+    parser.add_argument("--list-devices", action="store_true",
+                        help="List available audio input devices and exit")
+    args = parser.parse_args()
+
+    if args.list_devices:
+        inputs = [(i, d["name"]) for i, d in enumerate(sd.query_devices())
+                  if d["max_input_channels"] > 0]
+        if inputs:
+            for i, name in inputs:
+                print(f"  [{i}] {name}")
+        else:
+            print("No input devices found. Check that a microphone is connected.")
+        raise SystemExit(0)
+
+    asyncio.run(stream_to_server(args.uri))

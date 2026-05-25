@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sounddevice as sd
 import logging
 import numpy as np
@@ -34,15 +35,36 @@ class AudioRecorder:
         while not self.audio_queue.empty():
             self.audio_queue.get_nowait()
 
-        self.stream = sd.InputStream(
-            device='default',
-            samplerate=self.sample_rate,
-            channels=self.channels,
-            callback=self._audio_callback,
-            dtype='float32',
-            blocksize=4000 # ~250ms chunks at 16kHz
-        )
-        self.stream.start()
+        # None lets PortAudio pick the system default; AUDIO_DEVICE overrides for
+        # systems where autodetection fails (e.g. specific PipeWire/ALSA setups).
+        device = os.environ.get("AUDIO_DEVICE") or None
+
+        try:
+            self.stream = sd.InputStream(
+                device=device,
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                callback=self._audio_callback,
+                dtype='float32',
+                blocksize=4000
+            )
+            self.stream.start()
+        except sd.PortAudioError as e:
+            # Reset flag so the caller can retry after fixing the device.
+            self.is_recording = False
+            # Query here rather than at startup so the list reflects the actual
+            # state at the moment the error occurs (devices can be hotplugged).
+            inputs = [
+                f"  [{i}] {d['name']}"
+                for i, d in enumerate(sd.query_devices())
+                if d['max_input_channels'] > 0
+            ]
+            hint = "\n".join(inputs) if inputs else "  (none detected)"
+            raise RuntimeError(
+                f"Could not open audio input device: {e}\n\n"
+                f"Available input devices:\n{hint}\n\n"
+                f"Plug in a microphone, or set AUDIO_DEVICE=<index> to select one."
+            ) from e
         logger.info("Recording started.")
 
     async def stop_recording(self):
