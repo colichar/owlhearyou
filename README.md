@@ -12,6 +12,39 @@ See [INSTALL.md](INSTALL.md) for full setup instructions.
 
 ## Running
 
+### Server (podman-compose)
+
+```bash
+# Build the image
+podman-compose build
+
+# Start the server (CPU, Nemotron backend)
+podman-compose up
+```
+
+The server exposes a WebSocket at `ws://localhost:8000/ws/transcribe` and a health endpoint at `http://localhost:8000/health`.
+
+### Client (host)
+
+```bash
+# Stream from microphone to a local server
+python -m src.client
+
+# Point at a different server
+python -m src.client --uri ws://somehost:8000/ws/transcribe
+
+# List available audio input devices (useful if audio fails to open)
+python -m src.client --list-devices
+```
+
+If the client fails to open the microphone, it will print the available input devices and a hint. You can pin a specific device by index:
+
+```bash
+AUDIO_DEVICE=9 python -m src.client
+```
+
+### Server (local, without container)
+
 ```bash
 # Nemotron (default, GPU)
 ./scripts/run.sh
