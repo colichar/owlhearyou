@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['nemotron-*', 'whisper-*', 'owl-*']
+    tags: ['nemotron-*', 'whisper-*']
   pull_request:
     branches: [main]
 

@@ -2,8 +2,8 @@ services:
   server:
     build:
       context: .
-      target: nemotron        # or: whisper, owl
-    image: owlhearyou:nemotron-1.0.0 # or: whisper, owl
+      target: nemotron        # or: whisper
+    image: owlhearyou:nemotron-1.0.0 # or: whisper
     # environment:
     #   STT_BACKEND: nemotron   # overrides the image default
     #   STT_DEVICE: cpu         # overrides the image default
