@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['nemotron-*', 'whisper-*']
+    tags: ['nemotron-*', 'whisper-*', 'owl-*']
   pull_request:
     branches: [main]
 
@@ -88,7 +88,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: [e2e-nemotron, e2e-whisper]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/nemotron-') || startsWith(github.ref, 'refs/tags/whisper-')
 
     steps:
       - uses: actions/checkout@v4
@@ -114,3 +114,25 @@ jobs:
           target: ${{ steps.meta.outputs.target }}
           push: true
           tags: ${{ steps.meta.outputs.image }}
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    needs: [e2e-nemotron, e2e-whisper]
+    if: startsWith(github.ref, 'refs/tags/owl-')
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
