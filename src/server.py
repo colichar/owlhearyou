@@ -9,17 +9,25 @@ _backend = os.environ.get("STT_BACKEND", "nemotron")
 _device = os.environ.get("STT_DEVICE", "cuda")
 _onnx_provider = "cpu" if _device == "cpu" else "cuda"
 
-if _backend == "whisper":
-    transcriber = WhisperService(
-        model_size=os.environ.get("WHISPER_MODEL", "base"),
-        language=os.environ.get("WHISPER_LANGUAGE") or None,
-        device=_device,
-    )
-else:
-    transcriber = NemotronService(provider=_onnx_provider)
+transcriber: NemotronService | WhisperService | None = None
+try:
+    if _backend == "whisper":
+        transcriber = WhisperService(
+            model_size=os.environ.get("WHISPER_MODEL", "base"),
+            language=os.environ.get("WHISPER_LANGUAGE") or None,
+            device=_device,
+        )
+    else:
+        transcriber = NemotronService(provider=_onnx_provider)
+except ImportError as e:
+    print(f"STT backend '{_backend}' not available: {e}")
 
-synthesizer = KokoroService()
+synthesizer: KokoroService | None = None
 _default_voice = os.environ.get("KOKORO_VOICE", "af_heart")
+try:
+    synthesizer = KokoroService()
+except ImportError as e:
+    print(f"TTS (Kokoro) not available: {e}")
 
 
 @app.get("/health")
@@ -29,6 +37,9 @@ async def health():
 
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
+    if transcriber is None:
+        await websocket.close(code=1008, reason="STT not configured")
+        return
     await websocket.accept()
     print("Client connected via WebSocket")
     session = transcriber.create_session()
@@ -46,6 +57,9 @@ async def websocket_transcribe(websocket: WebSocket):
 
 @app.websocket("/ws/synthesize")
 async def websocket_synthesize(websocket: WebSocket, voice: str = _default_voice):
+    if synthesizer is None:
+        await websocket.close(code=1008, reason="TTS not configured")
+        return
     await websocket.accept()
     try:
         while True:
