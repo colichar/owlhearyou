@@ -1,6 +1,6 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.client import OwlClient, stream_to_server
+from src.client import OwlClient, transcribe
 
 
 class MockWebSocket:
@@ -38,7 +38,7 @@ def make_mock_recorder(stream=None):
     return recorder
 
 
-# --- OwlClient.stream() ---
+# --- OwlClient.stt_stream() ---
 
 async def test_stream_yields_partial_tuple():
     ws = MockWebSocket(["hello"])
@@ -47,7 +47,7 @@ async def test_stream_yields_partial_tuple():
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder):
         results = []
-        async for text, is_final in OwlClient("ws://localhost").stream():
+        async for text, is_final in OwlClient("ws://localhost").stt_stream():
             results.append((text, is_final))
 
     assert results == [("hello", False)]
@@ -60,7 +60,7 @@ async def test_stream_yields_final_tuple():
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder):
         results = []
-        async for text, is_final in OwlClient("ws://localhost").stream():
+        async for text, is_final in OwlClient("ws://localhost").stt_stream():
             results.append((text, is_final))
 
     assert results == [("hello", True)]
@@ -72,13 +72,13 @@ async def test_stream_stop_recording_called_in_finally():
 
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder):
-        async for _ in OwlClient("ws://localhost").stream():
+        async for _ in OwlClient("ws://localhost").stt_stream():
             pass
 
     recorder.stop_recording.assert_called_once()
 
 
-# --- stream_to_server() print rendering ---
+# --- transcribe() print rendering ---
 
 async def test_final_message_is_printed_with_rstrip():
     ws = MockWebSocket(["hello\n"])
@@ -87,7 +87,7 @@ async def test_final_message_is_printed_with_rstrip():
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder), \
          patch("builtins.print") as mock_print:
-        await stream_to_server("ws://localhost")
+        await transcribe("ws://localhost")
 
     mock_print.assert_any_call("\rhello")
 
@@ -99,7 +99,7 @@ async def test_partial_message_is_printed_inline():
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder), \
          patch("builtins.print") as mock_print:
-        await stream_to_server("ws://localhost")
+        await transcribe("ws://localhost")
 
     mock_print.assert_any_call("\rhello", end="", flush=True)
 
@@ -110,6 +110,6 @@ async def test_stop_recording_always_called():
 
     with patch("src.client.websockets.connect", return_value=ws), \
          patch("src.client.AudioRecorder", return_value=recorder):
-        await stream_to_server("ws://localhost")
+        await transcribe("ws://localhost")
 
     recorder.stop_recording.assert_called_once()
