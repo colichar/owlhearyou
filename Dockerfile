@@ -11,27 +11,29 @@ COPY src/ src/
 
 RUN pip install --no-cache-dir --upgrade pip
 
-# ── nemotron (CPU) ────────────────────────────────────────────────────────────
-FROM base AS nemotron
+# ── nemotron-kokoro (CPU) ─────────────────────────────────────────────────────
+FROM base AS nemotron-kokoro
 
-RUN pip install --no-cache-dir -e ".[server,nemotron]"
+RUN pip install --no-cache-dir -e ".[server,nemotron,kokoro]"
 
 ENV STT_BACKEND=nemotron \
-    STT_DEVICE=cpu
+    STT_DEVICE=cpu \
+    KOKORO_VOICE=af_heart
 
 EXPOSE 8000
 
 CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# ── whisper (CPU) ─────────────────────────────────────────────────────────────
-FROM base AS whisper
+# ── whisper-kokoro (CPU) ──────────────────────────────────────────────────────
+FROM base AS whisper-kokoro
 
-RUN pip install --no-cache-dir -e ".[server,whisper]"
+RUN pip install --no-cache-dir -e ".[server,whisper,kokoro]"
 
 ENV STT_BACKEND=whisper \
     STT_DEVICE=cpu \
     WHISPER_MODEL=base \
-    WHISPER_LANGUAGE=
+    WHISPER_LANGUAGE= \
+    KOKORO_VOICE=af_heart
 
 EXPOSE 8000
 

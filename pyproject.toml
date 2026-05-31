@@ -13,6 +13,7 @@ client  = ["websockets>=16.0", "sounddevice>=0.5.5", "numpy>=2.4.2"]
 server  = ["fastapi>=0.129.0", "uvicorn[standard]>=0.40.0", "numpy>=2.4.2", "huggingface-hub>=1.15.0"]
 whisper  = ["faster-whisper>=1.2.1"]
 nemotron = ["sherpa-onnx>=1.12.24"]
+kokoro   = ["kokoro-onnx>=0.4.0"]
 dev     = ["pytest>=9.0.3", "pytest-asyncio>=1.3.0"]
 
 [tool.setuptools.packages.find]
