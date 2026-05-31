@@ -4,7 +4,7 @@
 
 # OwlHearYou
 
-Real-time speech-to-text service over WebSockets. Supports two transcription backends selectable via environment variable.
+Real-time speech-to-text and text-to-speech service over WebSockets. Supports two STT backends and a Kokoro TTS synthesizer, all selectable via environment variables.
 
 ## Setup
 
@@ -25,16 +25,25 @@ podman-compose build
 podman-compose up
 ```
 
-The server exposes a WebSocket at `ws://localhost:8000/ws/transcribe` and a health endpoint at `http://localhost:8000/health`.
+The server exposes:
+- `ws://localhost:8000/ws/transcribe` — real-time STT
+- `ws://localhost:8000/ws/synthesize` — streaming TTS
+- `http://localhost:8000/health` — health check
 
 ### Client (host)
 
 ```bash
-# Stream from microphone to a local server
+# Stream from microphone for server-side transcription (STT)
 python -m src.client
 
+# Synthesize text to speech (TTS)
+python -m src.client --mode tts --text "Hello, world!"
+
+# Use a specific TTS voice
+python -m src.client --mode tts --text "Hello!" --voice af_sarah
+
 # Point at a different server
-python -m src.client --uri ws://somehost:8000/ws/transcribe
+python -m src.client --uri ws://somehost:8000
 
 # List available audio input devices (useful if audio fails to open)
 python -m src.client --list-devices
@@ -73,19 +82,20 @@ STT_BACKEND=whisper WHISPER_MODEL=large-v3 WHISPER_LANGUAGE=de ./scripts/run.sh
 | `STT_DEVICE` | `cuda`, `cpu`, `auto` | `cuda` |
 | `WHISPER_MODEL` | any faster-whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`, …) | `base` |
 | `WHISPER_LANGUAGE` | BCP-47 language code (`en`, `de`, `fr`, …) or unset for auto-detect | unset |
+| `KOKORO_VOICE` | any voice name from the Kokoro voices file (e.g. `af_heart`, `af_sarah`) | `af_heart` |
 
 `STT_DEVICE=auto` lets faster-whisper pick the best available device automatically; for Nemotron it behaves the same as `cuda`.
 
 ## Backends
 
-### Nemotron (default)
+### STT: Nemotron (default)
 
 Uses `sherpa-onnx` with an NVIDIA Nemotron transducer model. Processes audio chunk-by-chunk as it arrives and emits partial hypotheses in real time — words appear as you speak. Endpoint detection triggers a final result after a configurable silence window.
 
 - **Latency:** very low — partial results every ~30ms
 - **Concurrency:** fully parallel — each connection has its own independent stream, no shared state
 
-### Whisper
+### STT: Whisper
 
 Uses `faster-whisper` (CTranslate2 backend). Buffers audio per-connection and transcribes on silence — a complete sentence appears after the speaker pauses. No partial hypotheses.
 
@@ -99,3 +109,15 @@ For production multi-user deployments there are two options:
 1. **Multiple model instances** — instantiate one `WhisperModel` per worker process (via `uvicorn --workers N`). Each process owns its model and has no contention. Cost: N × VRAM.
 
 2. **Dedicated inference server** — run [Triton Inference Server](https://github.com/triton-inference-server/server) or [whisper.cpp server](https://github.com/ggerganov/whisper.cpp) as a separate service. These handle dynamic batching internally, serving many concurrent requests from a single model instance efficiently. The transcriber session becomes a thin HTTP/gRPC client.
+
+### TTS: Kokoro
+
+Uses `kokoro-onnx` with the official `kokoro-v1.0.onnx` model. On first startup the server downloads the model (~310 MB) and voices file automatically to `models/kokoro/`.
+
+The `/ws/synthesize` endpoint accepts text messages and streams back raw float32 PCM at 24 kHz mono. Each utterance ends with an empty bytes sentinel (`b""`). A voice can be selected per-connection via query parameter:
+
+```
+ws://localhost:8000/ws/synthesize?voice=af_sarah
+```
+
+If omitted, the server uses the `KOKORO_VOICE` environment variable (default: `af_heart`).
